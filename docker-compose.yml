@@ -1,0 +1,27 @@
+services:
+  screenshot-api:
+    build: .
+    container_name: mfg-screenshot-api
+    ports:
+      - "8500:8500"
+    environment:
+      - PORT=8500
+      - CACHE_DIR=/data/cache
+      - CACHE_TTL=3600
+      - AUTH_DB_PATH=/data/auth.db
+      - MAX_FREE_DAILY=100
+      - ADMIN_KEY=${ADMIN_KEY:-change-me-in-production}
+      - CLEANUP_INTERVAL=1800
+    volumes:
+      - screenshot-data:/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 512M
+
+volumes:
+  screenshot-data:
