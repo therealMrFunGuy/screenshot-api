@@ -41,7 +41,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install chromium
 
 # Copy application
-COPY core.py cache.py auth.py server.py mcp_server.py ./
+COPY core.py cache.py auth.py auth_client.py server.py mcp_server.py ./
 
 # Create data directory
 RUN mkdir -p /data/cache
