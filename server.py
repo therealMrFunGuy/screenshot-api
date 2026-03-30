@@ -7,7 +7,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query, Request, Header, Response
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Header, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field, HttpUrl
@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, HttpUrl
 from core import take_screenshot, shutdown_pool, ScreenshotParams
 from cache import get_cache
 from auth import get_auth_db
+from auth_client import require_auth
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,6 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("screenshot-api")
 
+AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://localhost:8499")
 CLEANUP_INTERVAL = int(os.environ.get("CLEANUP_INTERVAL", "1800"))  # 30 min
 
 
@@ -437,6 +439,7 @@ async def post_screenshot(
     body: ScreenshotRequest,
     request: Request,
     x_api_key: Optional[str] = Header(None),
+    auth: dict = Depends(require_auth),
 ):
     """Take a screenshot of the given URL (POST with JSON body)."""
     auth_info = await _check_auth(request, x_api_key)
@@ -484,6 +487,7 @@ async def get_screenshot(
     block_cookies: bool = Query(False),
     delay_ms: int = Query(0, ge=0, le=10000),
     x_api_key: Optional[str] = Header(None),
+    auth: dict = Depends(require_auth),
 ):
     """Take a screenshot via GET request (simpler, no CSS injection)."""
     auth_info = await _check_auth(request, x_api_key)
@@ -522,6 +526,7 @@ async def screenshot_base64(
     body: ScreenshotRequest,
     request: Request,
     x_api_key: Optional[str] = Header(None),
+    auth: dict = Depends(require_auth),
 ):
     """Take a screenshot and return it as a base64-encoded string."""
     auth_info = await _check_auth(request, x_api_key)
@@ -568,7 +573,7 @@ async def health():
 
 
 @app.get("/stats")
-async def stats(x_api_key: Optional[str] = Header(None)):
+async def stats(x_api_key: Optional[str] = Header(None), auth: dict = Depends(require_auth)):
     """Return cache and usage statistics."""
     cache = get_cache()
     auth_db = get_auth_db()
